@@ -16,8 +16,15 @@ class AuthController extends Controller
             'email' => 'nullable|email|unique:users,email',
             'phone' => 'nullable|string|unique:users,phone',
             'password' => 'required|string|min:6',
-            'role' => 'in:passenger,driver,admin'
+            'role' => 'in:passenger,driver,owner'
         ]);
+
+        // Ensure at least email or phone is provided
+        if (empty($data['email']) && empty($data['phone'])) {
+            return response()->json([
+                'message' => 'Either email or phone is required'
+            ], 422);
+        }
 
         $user = User::create([
             'name' => $data['name'],
@@ -45,6 +52,13 @@ class AuthController extends Controller
             'phone' => 'nullable|string',
             'password' => 'required|string'
         ]);
+
+        // Ensure at least email or phone is provided
+        if (empty($credentials['email']) && empty($credentials['phone'])) {
+            return response()->json([
+                'message' => 'Either email or phone is required'
+            ], 422);
+        }
 
         $user = null;
         if (!empty($credentials['email'])) {

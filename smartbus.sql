@@ -63,7 +63,10 @@ CREATE TABLE `buses` (
 --
 
 INSERT INTO `buses` (`id`, `number`, `type`, `route_id`, `capacity`, `driver_id`, `created_at`, `updated_at`) VALUES
-(1, 'EXP-1001', 'expressway', NULL, 40, NULL, '2025-10-26 07:57:10', NULL);
+(1, 'EXP-1001', 'expressway', 1, 40, 3, '2025-10-26 07:57:10', NULL),
+(2, 'EXP-1002', 'expressway', 2, 45, NULL, NOW(), NOW()),
+(3, 'NOR-2001', 'normal', 3, 50, NULL, NOW(), NOW()),
+(4, 'EXP-1003', 'expressway', 1, 42, NULL, NOW(), NOW());
 
 -- --------------------------------------------------------
 
@@ -117,7 +120,9 @@ CREATE TABLE `routes` (
 --
 
 INSERT INTO `routes` (`id`, `name`, `start_point`, `end_point`, `metadata`, `created_at`, `updated_at`) VALUES
-(1, 'Colombo - Kandy', 'Colombo', 'Kandy', NULL, '2025-10-26 07:57:10', NULL);
+(1, 'Colombo - Kandy', 'Colombo', 'Kandy', NULL, '2025-10-26 07:57:10', NULL),
+(2, 'Colombo - Galle', 'Colombo', 'Galle', '{"distance": "119km", "duration": "2.5h"}', NOW(), NOW()),
+(3, 'Kandy - Nuwara Eliya', 'Kandy', 'Nuwara Eliya', '{"distance": "77km", "duration": "2h"}', NOW(), NOW());
 
 -- --------------------------------------------------------
 
@@ -218,7 +223,7 @@ ALTER TABLE `bookings`
 -- AUTO_INCREMENT for table `buses`
 --
 ALTER TABLE `buses`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `feedback`
@@ -236,7 +241,7 @@ ALTER TABLE `payments`
 -- AUTO_INCREMENT for table `routes`
 --
 ALTER TABLE `routes`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `stops`
@@ -248,7 +253,27 @@ ALTER TABLE `stops`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- Sample data for users
+--
+INSERT INTO `users` (`id`, `name`, `email`, `phone`, `password`, `role`, `created_at`, `updated_at`) VALUES
+(1, 'Admin User', 'admin@smartbus.com', '+94771234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin', NOW(), NOW()),
+(2, 'John Passenger', 'passenger@example.com', '+94777654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'passenger', NOW(), NOW()),
+(3, 'Driver Smith', 'driver@example.com', '+94779876543', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'driver', NOW(), NOW());
+
+--
+-- Sample data for stops
+--
+INSERT INTO `stops` (`route_id`, `name`, `lat`, `lng`, `sequence`, `created_at`, `updated_at`) VALUES
+(1, 'Colombo Fort', 6.9344000, 79.8428000, 1, NOW(), NOW()),
+(1, 'Kegalle', 7.2513000, 80.3464000, 2, NOW(), NOW()),
+(1, 'Kandy Central', 7.2906000, 80.6337000, 3, NOW(), NOW()),
+(2, 'Colombo Fort', 6.9344000, 79.8428000, 1, NOW(), NOW()),
+(2, 'Kalutara', 6.5854000, 79.9607000, 2, NOW(), NOW()),
+(2, 'Galle Fort', 6.0329000, 80.2168000, 3, NOW(), NOW());
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
