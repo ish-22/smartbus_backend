@@ -7,22 +7,24 @@ use App\Models\Feedback;
 
 class FeedbackController extends Controller
 {
-    // POST /api/feedback
+    public function index()
+    {
+        $feedback = Feedback::with(['user', 'bus'])->get();
+        return response()->json($feedback);
+    }
+
     public function store(Request $request)
     {
         $data = $request->validate([
-            'bus_id' => 'nullable|integer|exists:buses,id',
+            'bus_id' => 'nullable|exists:buses,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string'
         ]);
 
-        $feedback = Feedback::create([
-            'user_id' => $request->user()?->id ?? null,
-            'bus_id' => $data['bus_id'] ?? null,
-            'rating' => $data['rating'],
-            'comment' => $data['comment'] ?? null
-        ]);
+        $data['user_id'] = $request->user()->id;
+        $data['created_at'] = now();
 
-        return response()->json($feedback, 201);
+        $feedback = Feedback::create($data);
+        return response()->json($feedback->load(['user', 'bus']), 201);
     }
 }
