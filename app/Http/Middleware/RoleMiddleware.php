@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 
-class CheckRole
+class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, $role)
     {
@@ -13,9 +13,9 @@ class CheckRole
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Convert role to lowercase for consistency
-        $requiredRole = strtolower($role);
-        $userRole = strtolower($request->user()->role);
+        // Convert role to uppercase for consistency
+        $requiredRole = strtoupper($role);
+        $userRole = strtoupper($request->user()->role);
 
         if ($userRole !== $requiredRole) {
             return response()->json([

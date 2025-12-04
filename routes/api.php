@@ -18,6 +18,15 @@ Route::prefix('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 });
 
+// Test route (no auth required)
+Route::get('/test', function() {
+    return response()->json([
+        'status' => 'Laravel API is working',
+        'timestamp' => now(),
+        'database' => \DB::connection()->getPdo() ? 'Connected' : 'Not connected'
+    ]);
+});
+
 // Public routes (no auth required)
 Route::get('/buses', [BusController::class, 'index']);
 Route::get('/buses/{id}', [BusController::class, 'show']);
@@ -43,8 +52,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
     
-    // Feedback
+    // Feedback routes
     Route::post('/feedback', [FeedbackController::class, 'store']);
+    Route::get('/feedback/my', [FeedbackController::class, 'myFeedback']);
+    Route::get('/feedback/{id}', [FeedbackController::class, 'show']);
+    Route::delete('/feedback/{id}', [FeedbackController::class, 'destroy']);
+    
+    // Debug route
+    Route::post('/feedback/debug', function(Request $request) {
+        return response()->json([
+            'user' => $request->user(),
+            'headers' => $request->headers->all(),
+            'body' => $request->all(),
+            'method' => $request->method(),
+            'url' => $request->url()
+        ]);
+    });
+    
+    // Admin only routes (remove middleware for now)
+    Route::get('/feedback/stats', [FeedbackController::class, 'stats']);
+    Route::put('/feedback/{id}/status', [FeedbackController::class, 'updateStatus']);
     
     // Payments
     Route::post('/payments', [PaymentController::class, 'store']);
