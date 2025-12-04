@@ -9,6 +9,7 @@ use App\Http\Controllers\StopController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProfileController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -31,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    
+    // Profile routes - users can only access their own profile
+    Route::get('/profile/{user_id}', [ProfileController::class, 'show']);
+    Route::put('/profile/update/{user_id}', [ProfileController::class, 'update']);
     
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index']);
