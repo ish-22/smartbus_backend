@@ -59,4 +59,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Bus::class, 'driver_id');
     }
+
+    public function lostFoundItems()
+    {
+        return $this->hasMany(LostFound::class);
+    }
 }

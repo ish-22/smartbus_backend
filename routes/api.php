@@ -10,6 +10,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LostFoundController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -50,6 +51,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments', [PaymentController::class, 'store']);
     Route::get('/payments/{id}', [PaymentController::class, 'show']);
     Route::patch('/payments/{id}/status', [PaymentController::class, 'updateStatus']);
+    
+    // Lost & Found routes
+    Route::get('/lost-found', [LostFoundController::class, 'index']);
+    Route::post('/lost-found', [LostFoundController::class, 'store']);
+    Route::get('/lost-found/my', [LostFoundController::class, 'myItems']);
+    Route::get('/lost-found/stats', [LostFoundController::class, 'stats']);
+    Route::get('/lost-found/{id}', [LostFoundController::class, 'show']);
+    Route::put('/lost-found/{id}', [LostFoundController::class, 'update']);
+    Route::delete('/lost-found/{id}', [LostFoundController::class, 'destroy']);
+    Route::patch('/lost-found/{id}/status', [LostFoundController::class, 'updateStatus']);
     
     // Admin routes
     Route::middleware('role:admin')->group(function () {
