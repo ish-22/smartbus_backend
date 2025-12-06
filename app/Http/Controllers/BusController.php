@@ -9,14 +9,14 @@ class BusController extends Controller
 {
     public function index()
     {
-        $buses = Bus::with(['route', 'driver'])->get();
-        return response()->json($buses);
+        $buses = Bus::select('id', 'bus_number', 'model', 'capacity', 'status')->get();
+        return response()->json(['data' => $buses]);
     }
 
     public function show($id)
     {
-        $bus = Bus::with(['route', 'driver'])->findOrFail($id);
-        return response()->json($bus);
+        $bus = Bus::select('id', 'bus_number', 'model', 'capacity', 'status')->findOrFail($id);
+        return response()->json(['data' => $bus]);
     }
 
     public function store(Request $request)

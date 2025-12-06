@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Bus extends Model
 {
-    protected $fillable = ['number', 'type', 'route_id', 'capacity', 'driver_id'];
+    protected $fillable = ['bus_number', 'model', 'capacity', 'status'];
 
     public function route()
     {
@@ -26,5 +26,10 @@ class Bus extends Model
     public function feedback()
     {
         return $this->hasMany(Feedback::class);
+    }
+
+    public function lostFoundItems()
+    {
+        return $this->hasMany(LostFound::class);
     }
 }
