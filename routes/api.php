@@ -96,6 +96,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/rewards/add', [\App\Http\Controllers\RewardController::class, 'addPoints']);
     Route::post('/rewards/deduct', [\App\Http\Controllers\RewardController::class, 'deductPoints']);
     
+    // Booking reward integration
+    Route::get('/booking/reward-data', [\App\Http\Controllers\BookingRewardController::class, 'getBookingData']);
+    Route::post('/booking/calculate-discount', [\App\Http\Controllers\BookingRewardController::class, 'calculateDiscount']);
+    
     // Offer routes
     Route::get('/offers', [\App\Http\Controllers\OfferController::class, 'index']);
     Route::post('/offers', [\App\Http\Controllers\OfferController::class, 'store']);
@@ -121,5 +125,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/buses', [BusController::class, 'store']);
         Route::post('/routes', [RouteController::class, 'store']);
         Route::post('/stops', [StopController::class, 'store']);
+        
+        // Admin-only reward and offer management
+        Route::post('/admin/offers', [\App\Http\Controllers\OfferController::class, 'store']);
+        Route::put('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'update']);
+        Route::delete('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'destroy']);
+        Route::post('/admin/rewards/bulk-add', [\App\Http\Controllers\RewardController::class, 'bulkAddPoints']);
     });
 });

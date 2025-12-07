@@ -32,23 +32,15 @@ class PaymentService
         
         $payment = Payment::create([
             'booking_id' => $booking->id,
-            'user_id' => $booking->user_id,
-            'amount' => $booking->total_amount,
+            'amount' => $booking->fare - ($booking->discount_amount ?? 0),
             'payment_method' => $paymentData['payment_method'],
-            'payment_status' => 'paid',
-            'transaction_id' => $transactionId,
-            'card_last_four' => substr($paymentData['card_number'], -4),
-            'gateway_response' => [
-                'status' => 'success',
-                'message' => 'Payment processed successfully'
-            ],
-            'processed_at' => now()
+            'status' => 'completed',
+            'transaction_id' => $transactionId
         ]);
 
         $booking->update([
             'payment_status' => 'paid',
-            'transaction_id' => $transactionId,
-            'payment_date' => now()
+            'transaction_id' => $transactionId
         ]);
 
         return $payment;
@@ -60,22 +52,15 @@ class PaymentService
         
         $payment = Payment::create([
             'booking_id' => $booking->id,
-            'user_id' => $booking->user_id,
-            'amount' => $booking->total_amount,
+            'amount' => $booking->fare - ($booking->discount_amount ?? 0),
             'payment_method' => 'digital_wallet',
-            'payment_status' => 'paid',
-            'transaction_id' => $transactionId,
-            'gateway_response' => [
-                'wallet_type' => $paymentData['wallet_type'] ?? 'generic',
-                'status' => 'success'
-            ],
-            'processed_at' => now()
+            'status' => 'completed',
+            'transaction_id' => $transactionId
         ]);
 
         $booking->update([
             'payment_status' => 'paid',
-            'transaction_id' => $transactionId,
-            'payment_date' => now()
+            'transaction_id' => $transactionId
         ]);
 
         return $payment;
@@ -84,8 +69,7 @@ class PaymentService
     private function processCashPayment(Booking $booking)
     {
         $booking->update([
-            'payment_status' => 'pending',
-            'payment_method' => 'cash'
+            'payment_status' => 'pending'
         ]);
 
         return null;

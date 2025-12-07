@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Booking;
 use App\Models\Reward;
+use App\Models\Offer;
+use App\Models\OfferRedemption;
 use App\Models\AdminCompensation;
 use App\Http\Controllers\RewardController;
 use App\Services\PaymentService;
@@ -28,6 +30,7 @@ class BookingController extends Controller
             'fare' => 'required|numeric|min:0',
             'payment_method' => 'required|in:cash,credit_card,debit_card,digital_wallet',
             'points_to_use' => 'nullable|integer|min:0',
+            'offer_id' => 'nullable|exists:offers,id',
             // Card payment fields
             'card_number' => 'nullable|string',
             'card_expiry' => 'nullable|string',
@@ -51,11 +54,45 @@ class BookingController extends Controller
             ]);
 
             $paymentService = new PaymentService();
+            $totalDiscount = 0;
+            
+            // Apply offer discount if provided
+            if (!empty($data['offer_id'])) {
+                $offer = Offer::findOrFail($data['offer_id']);
+                
+                // Validate offer
+                if ($offer->status !== 'active' || now() > $offer->end_date) {
+                    throw new \Exception('Selected offer is not valid or has expired');
+                }
+                
+                // Check if user already redeemed this offer
+                if (OfferRedemption::hasUserRedeemedOffer($request->user()->id, $offer->id)) {
+                    throw new \Exception('You have already used this offer');
+                }
+                
+                // Calculate offer discount
+                $offerDiscount = ($booking->fare * $offer->discount_percentage) / 100;
+                $totalDiscount += $offerDiscount;
+                
+                // Create offer redemption record
+                OfferRedemption::create([
+                    'user_id' => $request->user()->id,
+                    'offer_id' => $offer->id,
+                    'booking_id' => $booking->id,
+                    'discount_amount' => $offerDiscount,
+                    'status' => 'used',
+                    'used_at' => now()
+                ]);
+            }
             
             // Apply points discount if requested
             if (!empty($data['points_to_use'])) {
-                $paymentService->applyPointsDiscount($booking, $data['points_to_use']);
+                $pointsDiscount = $paymentService->applyPointsDiscount($booking, $data['points_to_use']);
+                $totalDiscount += $pointsDiscount;
             }
+            
+            // Update booking with total discount
+            $booking->update(['discount_amount' => $totalDiscount]);
 
             // Process payment
             $payment = $paymentService->processPayment($booking, $data);
@@ -65,9 +102,11 @@ class BookingController extends Controller
                 'message' => 'Booking created successfully',
                 'data' => $booking->load(['user', 'bus', 'route']),
                 'payment' => $payment,
-                'total_amount' => $booking->total_amount,
+                'original_fare' => $booking->fare,
+                'total_discount' => $totalDiscount,
+                'final_amount' => $booking->fare - $totalDiscount,
                 'points_used' => $booking->points_used,
-                'discount_amount' => $booking->discount_amount
+                'offer_applied' => !empty($data['offer_id'])
             ], 201);
         } catch (\Exception $e) {
             return response()->json([

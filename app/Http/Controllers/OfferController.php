@@ -36,6 +36,7 @@ class OfferController extends Controller
                 'end_date' => 'required|date|after:start_date'
             ]);
 
+            $data['status'] = 'active';
             $offer = Offer::create($data);
 
             return response()->json([
@@ -43,8 +44,18 @@ class OfferController extends Controller
                 'message' => 'Offer created successfully',
                 'data' => $offer
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Log::error('Offer creation failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create offer: ' . $e->getMessage()
+            ], 500);
         }
     }
 

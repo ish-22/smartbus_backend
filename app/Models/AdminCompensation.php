@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class AdminCompensation extends Model
 {
+    protected $table = 'admin_compensations';
+    
     protected $fillable = [
         'booking_id',
         'bus_owner_id', 
