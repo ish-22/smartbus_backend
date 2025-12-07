@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Feedback;
+use App\Models\Reward;
+use App\Models\UserFeedbackDaily;
+use App\Http\Controllers\RewardController;
+use Carbon\Carbon;
 
 class FeedbackController extends Controller
 {
@@ -24,11 +28,20 @@ class FeedbackController extends Controller
 
     public function store(Request $request)
     {
-        // Debug logging
-        \Log::info('Feedback store request:', [
-            'user' => $request->user() ? $request->user()->id : 'no user',
-            'data' => $request->all()
-        ]);
+        $user = $request->user();
+        $today = Carbon::today();
+        
+        // Check if user already submitted feedback today
+        $dailyFeedback = UserFeedbackDaily::where('user_id', $user->id)
+            ->where('feedback_date', $today)
+            ->first();
+            
+        if ($dailyFeedback) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only submit one feedback per day. Please try again tomorrow.'
+            ], 400);
+        }
 
         try {
             // Validate input
@@ -43,7 +56,7 @@ class FeedbackController extends Controller
 
             // Insert directly into database
             $feedbackData = [
-                'user_id' => $request->user()->id,
+                'user_id' => $user->id,
                 'subject' => $data['subject'],
                 'message' => $data['message'],
                 'type' => $data['type'],
@@ -60,27 +73,39 @@ class FeedbackController extends Controller
 
             $feedbackId = \DB::table('feedback')->insertGetId($feedbackData);
             
-            \Log::info('Feedback created successfully:', ['id' => $feedbackId]);
+            // Record daily feedback submission
+            UserFeedbackDaily::create([
+                'user_id' => $user->id,
+                'feedback_date' => $today
+            ]);
+            
+            // Add reward points for feedback submission (only for passengers)
+            $pointsEarned = 0;
+            if ($user->role === 'passenger') {
+                Reward::addPoints(
+                    $user->id,
+                    5,
+                    'feedback',
+                    'Daily feedback submission reward'
+                );
+                $pointsEarned = 5;
+            }
             
             return response()->json([
                 'success' => true,
-                'message' => 'Feedback submitted successfully',
+                'message' => $pointsEarned > 0 ? 'Feedback submitted successfully! You earned 5 reward points.' : 'Feedback submitted successfully!',
                 'id' => $feedbackId,
+                'points_earned' => $pointsEarned,
                 'data' => $feedbackData
             ], 201);
             
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Validation error:', $e->errors());
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Feedback creation error:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create feedback',

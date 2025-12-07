@@ -52,6 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::patch('/bookings/{id}/cancel', [BookingController::class, 'cancel']);
+    Route::patch('/bookings/{id}/complete', [BookingController::class, 'complete']);
     
     // Feedback routes
     Route::post('/feedback', [FeedbackController::class, 'store']);
@@ -89,10 +90,46 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/lost-found/{id}', [LostFoundController::class, 'destroy']);
     Route::patch('/lost-found/{id}/status', [LostFoundController::class, 'updateStatus']);
     
+    // Reward routes
+    Route::get('/rewards/points', [\App\Http\Controllers\RewardController::class, 'getUserPoints']);
+    Route::get('/rewards/history', [\App\Http\Controllers\RewardController::class, 'getRewardHistory']);
+    Route::post('/rewards/add', [\App\Http\Controllers\RewardController::class, 'addPoints']);
+    Route::post('/rewards/deduct', [\App\Http\Controllers\RewardController::class, 'deductPoints']);
+    
+    // Booking reward integration
+    Route::get('/booking/reward-data', [\App\Http\Controllers\BookingRewardController::class, 'getBookingData']);
+    Route::post('/booking/calculate-discount', [\App\Http\Controllers\BookingRewardController::class, 'calculateDiscount']);
+    
+    // Offer routes
+    Route::get('/offers', [\App\Http\Controllers\OfferController::class, 'index']);
+    Route::post('/offers', [\App\Http\Controllers\OfferController::class, 'store']);
+    Route::put('/offers/{id}', [\App\Http\Controllers\OfferController::class, 'update']);
+    Route::delete('/offers/{id}', [\App\Http\Controllers\OfferController::class, 'destroy']);
+    Route::post('/offers/redeem', [\App\Http\Controllers\OfferController::class, 'redeemOffer']);
+    Route::get('/offers/{id}/eligibility', [\App\Http\Controllers\OfferController::class, 'checkEligibility']);
+    Route::get('/offers/redeemed', [\App\Http\Controllers\OfferController::class, 'getRedeemedOffers']);
+    
+    // Owner Payment routes
+    Route::get('/owner-payments', [\App\Http\Controllers\OwnerPaymentController::class, 'index']);
+    Route::patch('/owner-payments/{id}/paid', [\App\Http\Controllers\OwnerPaymentController::class, 'markAsPaid']);
+    Route::get('/owner-payments/stats', [\App\Http\Controllers\OwnerPaymentController::class, 'getStats']);
+    
+    // Admin Compensation routes
+    Route::get('/admin-compensations', [\App\Http\Controllers\AdminCompensationController::class, 'index']);
+    Route::get('/admin-compensations/stats', [\App\Http\Controllers\AdminCompensationController::class, 'getStats']);
+    Route::patch('/admin-compensations/{id}/paid', [\App\Http\Controllers\AdminCompensationController::class, 'markAsPaid']);
+    Route::get('/owner-compensations', [\App\Http\Controllers\AdminCompensationController::class, 'getOwnerCompensations']);
+    
     // Admin routes
     Route::middleware('role:admin')->group(function () {
         Route::post('/buses', [BusController::class, 'store']);
         Route::post('/routes', [RouteController::class, 'store']);
         Route::post('/stops', [StopController::class, 'store']);
+        
+        // Admin-only reward and offer management
+        Route::post('/admin/offers', [\App\Http\Controllers\OfferController::class, 'store']);
+        Route::put('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'update']);
+        Route::delete('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'destroy']);
+        Route::post('/admin/rewards/bulk-add', [\App\Http\Controllers\RewardController::class, 'bulkAddPoints']);
     });
 });
