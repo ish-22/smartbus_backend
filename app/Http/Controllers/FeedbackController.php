@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Feedback;
+use App\Http\Controllers\RewardController;
 
 class FeedbackController extends Controller
 {
@@ -60,11 +61,16 @@ class FeedbackController extends Controller
 
             $feedbackId = \DB::table('feedback')->insertGetId($feedbackData);
             
+            // Add reward points for feedback submission
+            if ($request->user()->role === 'passenger') {
+                RewardController::autoAddPointsOnFeedback($request->user()->id, $feedbackId);
+            }
+            
             \Log::info('Feedback created successfully:', ['id' => $feedbackId]);
             
             return response()->json([
                 'success' => true,
-                'message' => 'Feedback submitted successfully',
+                'message' => 'Feedback submitted successfully and points awarded',
                 'id' => $feedbackId,
                 'data' => $feedbackData
             ], 201);
