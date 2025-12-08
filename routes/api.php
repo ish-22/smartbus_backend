@@ -108,6 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/offers/redeem', [\App\Http\Controllers\OfferController::class, 'redeemOffer']);
     Route::get('/offers/{id}/eligibility', [\App\Http\Controllers\OfferController::class, 'checkEligibility']);
     Route::get('/offers/redeemed', [\App\Http\Controllers\OfferController::class, 'getRedeemedOffers']);
+    Route::get('/offers/redeemed', [\App\Http\Controllers\OfferController::class, 'getRedeemedOffers']);
     
     // Owner Payment routes
     Route::get('/owner-payments', [\App\Http\Controllers\OwnerPaymentController::class, 'index']);

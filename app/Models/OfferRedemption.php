@@ -15,9 +15,7 @@ class OfferRedemption extends Model
         'used_at'
     ];
 
-    protected $casts = [
-        'used_at' => 'datetime'
-    ];
+    protected $dates = ['used_at'];
 
     public function user()
     {
@@ -37,7 +35,8 @@ class OfferRedemption extends Model
     public static function hasUserRedeemedOffer($userId, $offerId)
     {
         return self::where('user_id', $userId)
-                  ->where('offer_id', $offerId)
-                  ->exists();
+                   ->where('offer_id', $offerId)
+                   ->where('status', 'used')
+                   ->exists();
     }
 }
