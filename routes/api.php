@@ -14,6 +14,7 @@ use App\Http\Controllers\LostFoundController;
 use App\Http\Controllers\DriverAssignmentController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\DashboardController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -138,6 +139,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
     });
+    
+    // Dashboard statistics routes
+    Route::get('/dashboard/admin/stats', [DashboardController::class, 'adminStats']);
+    Route::get('/dashboard/owner/stats', [DashboardController::class, 'ownerStats']);
+    Route::get('/dashboard/passenger/stats', [DashboardController::class, 'passengerStats']);
     
     // Incident routes
     Route::prefix('incidents')->group(function () {
