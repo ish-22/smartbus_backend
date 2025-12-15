@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LostFound;
 use App\Models\Bus;
+use App\Models\Notification;
 
 class LostFoundController extends Controller
 {
@@ -15,17 +16,17 @@ class LostFoundController extends Controller
             $query = LostFound::with(['user:id,name,email', 'bus:id,bus_number']);
 
             // Role-based filtering
-            if ($user->role === 'passenger') {
+            if ($user && $user->role === 'passenger') {
+                // Passengers see only items they reported
                 $query->where('user_id', $user->id);
-            } elseif ($user->role === 'driver') {
-                // For now, drivers see only their own items
-                // TODO: Implement proper bus-driver relationship
-                $query->where('user_id', $user->id);
-            } elseif ($user->role === 'owner') {
-                // Owner sees all items (or implement custom logic based on your bus ownership structure)
-                // If you have a separate bus_owners table, adjust this query accordingly
+            } elseif ($user && $user->role === 'driver') {
+                // Drivers can see all lost & found items so they can help return items
+                // TODO: In future, filter by buses assigned to this driver once the relationship exists
+            } elseif ($user && $user->role === 'owner') {
+                // Owners currently see all items
+                // TODO: Optionally filter by buses owned by this owner
             }
-            // Admin sees all
+            // Admin sees all by default
 
             if ($request->status) {
                 $query->where('status', $request->status);
@@ -50,8 +51,24 @@ class LostFoundController extends Controller
                 'bus_id' => 'nullable|exists:buses,id',
             ]);
 
-            $data['user_id'] = $request->user()->id;
+            $user = $request->user();
+            $data['user_id'] = $user->id;
             $item = LostFound::create($data);
+
+            // Notify admins about a new lost & found report
+            $adminUsers = \App\Models\User::where('role', 'admin')->get(['id']);
+            foreach ($adminUsers as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'title'   => 'New Lost & Found Reported',
+                    'message' => sprintf(
+                        "User %s reported a '%s' item.",
+                        $user->name,
+                        $item->item_name
+                    ),
+                    'type'    => 'info',
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -160,6 +177,19 @@ class LostFoundController extends Controller
             ]);
 
             $item->update($data);
+
+            // Notify original reporter when item is returned
+            if ($data['status'] === 'returned' && $item->user_id) {
+                Notification::create([
+                    'user_id' => $item->user_id,
+                    'title'   => 'Lost Item Returned',
+                    'message' => sprintf(
+                        "Your lost item '%s' has been marked as returned.",
+                        $item->item_name
+                    ),
+                    'type'    => 'success',
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
