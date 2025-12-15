@@ -6,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class Bus extends Model
 {
-    protected $fillable = ['bus_number', 'model', 'capacity', 'status'];
+    protected $fillable = [
+        'bus_number',
+        'number', // Alias for bus_number
+        'model',
+        'capacity',
+        'status',
+        'type',
+        'route_id',
+        'driver_id',
+    ];
 
     public function route()
     {
@@ -31,5 +40,18 @@ class Bus extends Model
     public function lostFoundItems()
     {
         return $this->hasMany(LostFound::class);
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class);
+    }
+
+    /**
+     * Accessor for number (alias of bus_number)
+     */
+    public function getNumberAttribute()
+    {
+        return $this->bus_number;
     }
 }

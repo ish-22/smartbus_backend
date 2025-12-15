@@ -11,6 +11,8 @@ use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LostFoundController;
+use App\Http\Controllers\DriverAssignmentController;
+use App\Http\Controllers\IncidentController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -120,6 +122,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin-compensations/stats', [\App\Http\Controllers\AdminCompensationController::class, 'getStats']);
     Route::patch('/admin-compensations/{id}/paid', [\App\Http\Controllers\AdminCompensationController::class, 'markAsPaid']);
     Route::get('/owner-compensations', [\App\Http\Controllers\AdminCompensationController::class, 'getOwnerCompensations']);
+    
+    // Driver assignment routes
+    Route::prefix('drivers')->group(function () {
+        Route::post('/{driverId}/assign-bus', [DriverAssignmentController::class, 'assignBus']);
+        Route::get('/{driverId}/current-assignment', [DriverAssignmentController::class, 'getCurrentAssignment']);
+        Route::post('/{driverId}/assignments/{assignmentId}/end', [DriverAssignmentController::class, 'endAssignment']);
+        Route::get('/{driverId}/assignments', [DriverAssignmentController::class, 'getAssignmentHistory']);
+    });
+    
+    // Incident routes
+    Route::prefix('incidents')->group(function () {
+        Route::get('/', [IncidentController::class, 'index']); // Driver's incidents
+        Route::post('/', [IncidentController::class, 'store']); // Report incident
+        Route::get('/{id}', [IncidentController::class, 'show']); // Get specific incident
+        Route::get('/admin/all', [IncidentController::class, 'getAll']); // Admin: all incidents
+        Route::get('/admin/stats', [IncidentController::class, 'stats']); // Admin: statistics
+        Route::get('/owner/all', [IncidentController::class, 'getOwnerIncidents']); // Owner: incidents for their buses
+        Route::get('/passenger/all', [IncidentController::class, 'getPassengerIncidents']); // Passenger: public incidents
+        Route::patch('/{id}/status', [IncidentController::class, 'updateStatus']); // Admin: update status
+        Route::delete('/{id}', [IncidentController::class, 'destroy']); // Admin: delete
+    });
     
     // Admin routes
     Route::middleware('role:admin')->group(function () {
