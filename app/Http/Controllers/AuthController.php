@@ -16,8 +16,16 @@ class AuthController extends Controller
             'email' => 'nullable|email|unique:users,email',
             'phone' => 'nullable|string|unique:users,phone',
             'password' => 'required|string|min:6',
-            'role' => 'in:passenger,driver,owner'
+            'role' => 'in:passenger,driver,owner',
+            'driver_type' => 'nullable|in:expressway,normal'
         ]);
+
+        // Validate driver_type is required if role is driver
+        if ($data['role'] === 'driver' && empty($data['driver_type'])) {
+            return response()->json([
+                'message' => 'Driver type is required for driver registration'
+            ], 422);
+        }
 
         // Ensure at least email or phone is provided
         if (empty($data['email']) && empty($data['phone'])) {
@@ -31,7 +39,8 @@ class AuthController extends Controller
             'email' => $data['email'] ?? null,
             'phone' => $data['phone'] ?? null,
             'password' => Hash::make($data['password']),
-            'role' => $data['role'] ?? 'passenger'
+            'role' => $data['role'] ?? 'passenger',
+            'driver_type' => $data['driver_type'] ?? null
         ]);
 
         // Create Sanctum token

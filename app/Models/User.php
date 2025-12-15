@@ -23,6 +23,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'driver_type',
     ];
 
     /**
@@ -63,5 +64,23 @@ class User extends Authenticatable
     public function lostFoundItems()
     {
         return $this->hasMany(LostFound::class);
+    }
+
+    public function driverAssignments()
+    {
+        return $this->hasMany(DriverAssignment::class, 'driver_id');
+    }
+
+    public function currentAssignment()
+    {
+        return $this->hasOne(DriverAssignment::class, 'driver_id')
+            ->whereDate('assigned_at', today())
+            ->whereNull('ended_at')
+            ->latest('assigned_at');
+    }
+
+    public function incidents()
+    {
+        return $this->hasMany(Incident::class, 'driver_id');
     }
 }

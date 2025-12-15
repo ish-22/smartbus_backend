@@ -23,7 +23,8 @@ class ProfileController extends Controller
         }
 
         // Check if user is trying to access their own profile
-        if ($authenticatedUser->id != $user_id) {
+        // Convert both to integers for proper comparison (handles string IDs from frontend)
+        if ((int)$authenticatedUser->id !== (int)$user_id) {
             return response()->json([
                 'message' => 'Unauthorized. You can only access your own profile.'
             ], 403);
@@ -64,7 +65,8 @@ class ProfileController extends Controller
         }
 
         // Check if user is trying to update their own profile
-        if ($authenticatedUser->id != $user_id) {
+        // Convert both to integers for proper comparison (handles string IDs from frontend)
+        if ((int)$authenticatedUser->id !== (int)$user_id) {
             return response()->json([
                 'message' => 'Unauthorized. You can only update your own profile.'
             ], 403);
