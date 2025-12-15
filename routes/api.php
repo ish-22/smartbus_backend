@@ -13,6 +13,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LostFoundController;
 use App\Http\Controllers\DriverAssignmentController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\NotificationController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -131,6 +132,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{driverId}/assignments', [DriverAssignmentController::class, 'getAssignmentHistory']);
     });
     
+    // Notification routes (for all authenticated users, especially drivers)
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead']);
+    });
+    
     // Incident routes
     Route::prefix('incidents')->group(function () {
         Route::get('/', [IncidentController::class, 'index']); // Driver's incidents
@@ -155,5 +163,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'update']);
         Route::delete('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'destroy']);
         Route::post('/admin/rewards/bulk-add', [\App\Http\Controllers\RewardController::class, 'bulkAddPoints']);
+
+        // Admin-only notifications creation
+        Route::post('/admin/notifications', [NotificationController::class, 'adminStore']);
     });
 });

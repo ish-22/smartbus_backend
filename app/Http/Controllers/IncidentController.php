@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Incident;
 use App\Models\Bus;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -156,6 +157,22 @@ class IncidentController extends Controller
 
         $incident->load(['bus:id,bus_number', 'driver:id,name,email,phone']);
 
+        // Notify admin(s) about new incident - for now, notify all admins
+        $adminUsers = \App\Models\User::where('role', 'admin')->get(['id']);
+        foreach ($adminUsers as $admin) {
+            Notification::create([
+                'user_id' => $admin->id,
+                'title'   => 'New Incident Reported',
+                'message' => sprintf(
+                    'Driver %s reported a %s incident%s.',
+                    $user->name,
+                    $request->type,
+                    $incident->bus ? ' on bus '.$incident->bus->bus_number : ''
+                ),
+                'type'    => 'warning',
+            ]);
+        }
+
         return response()->json([
             'message' => 'Incident reported successfully',
             'incident' => $incident
@@ -222,6 +239,20 @@ class IncidentController extends Controller
 
         $incident->update($updateData);
         $incident->load(['driver', 'bus', 'resolver']);
+
+        // Notify driver about status change
+        if ($incident->driver_id) {
+            Notification::create([
+                'user_id' => $incident->driver_id,
+                'title'   => 'Incident Status Updated',
+                'message' => sprintf(
+                    'Your incident #%d is now %s.',
+                    $incident->id,
+                    $incident->status
+                ),
+                'type'    => in_array($incident->status, ['resolved', 'closed']) ? 'success' : 'info',
+            ]);
+        }
 
         return response()->json([
             'message' => 'Incident status updated successfully',

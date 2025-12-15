@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DriverAssignment;
 use App\Models\Bus;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -75,6 +76,19 @@ class DriverAssignmentController extends Controller
 
             // Update bus driver_id (if needed for backward compatibility)
             $bus->update(['driver_id' => $driverId]);
+
+            // Create a notification for the driver
+            Notification::create([
+                'user_id' => $driverId,
+                'title'   => 'Bus Assignment',
+                'message' => sprintf(
+                    'You have been assigned to bus %s (%s) as a %s driver.',
+                    $bus->bus_number ?? $bus->id,
+                    $bus->route->name ?? 'route',
+                    $request->driver_type
+                ),
+                'type'    => 'info',
+            ]);
 
             DB::commit();
 
