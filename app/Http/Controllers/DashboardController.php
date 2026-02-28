@@ -9,6 +9,7 @@ use App\Models\Bus;
 use App\Models\Route;
 use App\Models\Booking;
 use App\Models\Incident;
+use App\Models\DriverAssignment;
 
 class DashboardController extends Controller
 {
@@ -58,17 +59,43 @@ class DashboardController extends Controller
         }
 
         try {
-            // For now, return general stats since owner-bus relationship may vary
-            // This can be customized based on your actual schema
+            // Only show stats for owner's buses
+            $ownerBusIds = Bus::where('owner_id', $user->id)->pluck('id');
+            
+            // Get unique drivers assigned to owner's buses
+            $assignedDriverIds = Bus::where('owner_id', $user->id)
+                ->whereNotNull('driver_id')
+                ->distinct()
+                ->pluck('driver_id');
+            
+            // Get unique routes for owner's buses
+            $ownerRouteIds = Bus::where('owner_id', $user->id)
+                ->whereNotNull('route_id')
+                ->distinct()
+                ->pluck('route_id');
+            
             $stats = [
-                'total_buses' => Bus::count(), // Will be filtered by owner when schema is clear
-                'active_buses' => Bus::where('status', 'active')->count(),
-                'total_drivers' => User::where('role', 'driver')->count(),
-                'total_routes' => Route::count(),
-                'today_bookings' => Booking::whereDate('created_at', today())->count(),
-                'total_bookings' => Booking::count(),
-                'pending_incidents' => Incident::whereIn('status', ['reported', 'in_progress'])->count(),
-                'resolved_incidents' => Incident::where('status', 'resolved')->count(),
+                'total_buses' => Bus::where('owner_id', $user->id)->count(),
+                'active_buses' => Bus::where('owner_id', $user->id)->where('status', 'active')->count(),
+                'maintenance_buses' => Bus::where('owner_id', $user->id)->where('status', 'maintenance')->count(),
+                'inactive_buses' => Bus::where('owner_id', $user->id)->where('status', 'inactive')->count(),
+                'buses_with_drivers' => Bus::where('owner_id', $user->id)->whereNotNull('driver_id')->count(),
+                'total_assignments' => DriverAssignment::whereIn('bus_id', $ownerBusIds)->count(),
+                'active_assignments' => DriverAssignment::whereIn('bus_id', $ownerBusIds)
+                    ->whereNull('ended_at')
+                    ->count(),
+                'total_drivers' => $assignedDriverIds->count(), // Unique drivers assigned to owner's buses
+                'total_routes' => $ownerRouteIds->count(), // Unique routes for owner's buses
+                'today_bookings' => Booking::whereIn('bus_id', $ownerBusIds)
+                    ->whereDate('created_at', today())
+                    ->count(),
+                'total_bookings' => Booking::whereIn('bus_id', $ownerBusIds)->count(),
+                'pending_incidents' => Incident::whereIn('bus_id', $ownerBusIds)
+                    ->whereIn('status', ['reported', 'in_progress'])
+                    ->count(),
+                'resolved_incidents' => Incident::whereIn('bus_id', $ownerBusIds)
+                    ->where('status', 'resolved')
+                    ->count(),
             ];
 
             return response()->json($stats);

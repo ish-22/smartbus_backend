@@ -15,6 +15,8 @@ use App\Http\Controllers\DriverAssignmentController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\OverpassRouteController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -33,10 +35,14 @@ Route::get('/test', function() {
 });
 
 // Public routes (no auth required)
-Route::get('/buses', [BusController::class, 'index']);
-Route::get('/buses/{id}', [BusController::class, 'show']);
 Route::get('/routes', [RouteController::class, 'index']);
 Route::get('/routes/{id}', [RouteController::class, 'show']);
+Route::get('/buses', [BusController::class, 'index']);
+Route::get('/buses/{id}', [BusController::class, 'show']);
+
+// Overpass API routes (public, for testing)
+Route::get('/routes/overpass/test', [OverpassRouteController::class, 'testConnection']);
+Route::get('/routes/overpass/fetch', [OverpassRouteController::class, 'fetchRoutes']);
 Route::get('/stops', [StopController::class, 'index']);
 Route::get('/stops/route/{routeId}', [StopController::class, 'byRoute']);
 Route::get('/feedback', [FeedbackController::class, 'index']);
@@ -125,11 +131,30 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/admin-compensations/{id}/paid', [\App\Http\Controllers\AdminCompensationController::class, 'markAsPaid']);
     Route::get('/owner-compensations', [\App\Http\Controllers\AdminCompensationController::class, 'getOwnerCompensations']);
     
-    // Driver assignment routes
+    // Users routes
+    Route::prefix('users')->group(function () {
+        // Get all drivers (for owners/admins)
+        Route::get('/drivers', [UserController::class, 'getDrivers']);
+    });
+    
+    // Driver assignment routes - Owners and Admins only
+    // Role checking is done in the controller for better error messages
+    Route::prefix('driver-assignments')->group(function () {
+        // Owners/Admins assign drivers to buses
+        Route::post('/', [DriverAssignmentController::class, 'assignDriverToBus']);
+        
+        // Get owner's assignments (for their buses)
+        Route::get('/owner/all', [DriverAssignmentController::class, 'getOwnerAssignments']);
+    });
+    
     Route::prefix('drivers')->group(function () {
-        Route::post('/{driverId}/assign-bus', [DriverAssignmentController::class, 'assignBus']);
+        // View current assignment (drivers can view their own, owners/admins can view any)
         Route::get('/{driverId}/current-assignment', [DriverAssignmentController::class, 'getCurrentAssignment']);
+        
+        // End assignment (driver can end their own, owner can end for their buses)
         Route::post('/{driverId}/assignments/{assignmentId}/end', [DriverAssignmentController::class, 'endAssignment']);
+        
+        // Get assignment history
         Route::get('/{driverId}/assignments', [DriverAssignmentController::class, 'getAssignmentHistory']);
     });
     
@@ -158,9 +183,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [IncidentController::class, 'destroy']); // Admin: delete
     });
     
+    // Buses routes - Now public, but owners see only their buses when authenticated
+    // Route::get('/buses', [BusController::class, 'index']); // Moved to public section
+    // Route::get('/buses/{id}', [BusController::class, 'show']); // Moved to public section
+    
+    // Owner and Admin routes - Bus registration
+    Route::middleware('role:owner,admin')->group(function () {
+        Route::post('/buses', [BusController::class, 'store']);
+    });
+    
     // Admin routes
     Route::middleware('role:admin')->group(function () {
-        Route::post('/buses', [BusController::class, 'store']);
         Route::post('/routes', [RouteController::class, 'store']);
         Route::post('/stops', [StopController::class, 'store']);
         

@@ -38,16 +38,23 @@ class ProfileController extends Controller
         }
 
         // Return user data (excluding sensitive information)
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
+        // Add license_number if available (for drivers and owners)
+        if ($user->license_number) {
+            $userData['license_number'] = $user->license_number;
+        }
+
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'role' => $user->role,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at,
-            ]
+            'user' => $userData
         ]);
     }
 
@@ -95,6 +102,7 @@ class ProfileController extends Controller
                 Rule::unique('users', 'phone')->ignore($user_id)
             ],
             'password' => 'sometimes|string|min:6|nullable',
+            'license_number' => 'sometimes|nullable|string|max:191',
         ]);
 
         // Update user fields
@@ -110,6 +118,11 @@ class ProfileController extends Controller
             $user->phone = $data['phone'];
         }
 
+        // Update license_number if provided (for owners and drivers)
+        if (isset($data['license_number'])) {
+            $user->license_number = $data['license_number'];
+        }
+
         // Update password if provided
         if (isset($data['password']) && !empty($data['password'])) {
             $user->password = Hash::make($data['password']);
@@ -118,16 +131,23 @@ class ProfileController extends Controller
         $user->save();
 
         // Return updated user data
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'updated_at' => $user->updated_at,
+        ];
+
+        // Add license_number if available
+        if ($user->license_number) {
+            $userData['license_number'] = $user->license_number;
+        }
+
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'role' => $user->role,
-                'updated_at' => $user->updated_at,
-            ]
+            'user' => $userData
         ]);
     }
 }

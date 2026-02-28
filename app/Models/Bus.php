@@ -15,6 +15,7 @@ class Bus extends Model
         'type',
         'route_id',
         'driver_id',
+        'owner_id',
     ];
 
     public function route()
@@ -25,6 +26,11 @@ class Bus extends Model
     public function driver()
     {
         return $this->belongsTo(User::class, 'driver_id');
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     public function bookings()
