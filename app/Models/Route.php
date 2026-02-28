@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Route extends Model
 {
-    protected $fillable = ['name', 'start_point', 'end_point', 'metadata'];
+    protected $fillable = ['route_number', 'name', 'start_point', 'end_point', 'distance', 'fare', 'metadata'];
     
     protected $casts = [
         'metadata' => 'array'

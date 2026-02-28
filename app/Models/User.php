@@ -24,6 +24,14 @@ class User extends Authenticatable
         'password',
         'role',
         'driver_type',
+        'license_number',
+        'license_expiry_date',
+        'address',
+        'nic_number',
+        'date_of_birth',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'experience_years',
     ];
 
     /**
@@ -44,6 +52,8 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'license_expiry_date' => 'date',
+        'date_of_birth' => 'date',
     ];
 
     public function bookings()
@@ -59,6 +69,11 @@ class User extends Authenticatable
     public function drivenBuses()
     {
         return $this->hasMany(Bus::class, 'driver_id');
+    }
+
+    public function ownedBuses()
+    {
+        return $this->hasMany(Bus::class, 'owner_id');
     }
 
     public function lostFoundItems()

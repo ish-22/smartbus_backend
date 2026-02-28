@@ -12,11 +12,14 @@ class DriverAssignment extends Model
         'bus_id',
         'driver_type',
         'assigned_at',
+        'assignment_date',
         'ended_at',
+        'assigned_by',
     ];
 
     protected $casts = [
         'assigned_at' => 'datetime',
+        'assignment_date' => 'date',
         'ended_at' => 'datetime',
     ];
 
@@ -34,6 +37,14 @@ class DriverAssignment extends Model
     public function bus(): BelongsTo
     {
         return $this->belongsTo(Bus::class, 'bus_id');
+    }
+
+    /**
+     * Get the user (owner/admin) who assigned this driver
+     */
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
     }
 
     /**

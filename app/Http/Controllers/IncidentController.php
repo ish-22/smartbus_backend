@@ -284,17 +284,30 @@ class IncidentController extends Controller
     {
         $user = $request->user();
 
-        if ($user->role !== 'owner') {
+        if (!$user || $user->role !== 'owner') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Get all incidents (for now, owners can see all incidents)
-        // TODO: Filter by owner's buses when owner-bus relationship is established
+        // Only get incidents for buses owned by this owner
+        $ownerBusIds = \App\Models\Bus::where('owner_id', $user->id)->pluck('id');
+        
+        if ($ownerBusIds->isEmpty()) {
+            return response()->json([
+                'data' => [],
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => $request->get('per_page', 20),
+                'total' => 0,
+            ]);
+        }
+
         $query = Incident::with([
             'driver:id,name,email,phone',
-            'bus:id,bus_number',
+            'bus:id,bus_number,owner_id',
             'resolver:id,name'
-        ])->orderBy('created_at', 'desc');
+        ])
+        ->whereIn('bus_id', $ownerBusIds)
+        ->orderBy('created_at', 'desc');
 
         // Filter by status
         if ($request->has('status')) {
@@ -306,9 +319,13 @@ class IncidentController extends Controller
             $query->where('severity', $request->severity);
         }
 
-        // Filter by bus_id if provided
+        // Filter by bus_id if provided (but must still be owner's bus)
         if ($request->has('bus_id')) {
-            $query->where('bus_id', $request->bus_id);
+            $busId = $request->bus_id;
+            // Verify this bus belongs to the owner
+            if ($ownerBusIds->contains($busId)) {
+                $query->where('bus_id', $busId);
+            }
         }
 
         $incidents = $query->paginate($request->get('per_page', 20));

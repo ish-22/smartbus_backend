@@ -7,10 +7,41 @@ use App\Models\Route;
 
 class RouteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $routes = Route::with('stops')->get();
-        return response()->json($routes);
+        try {
+            $query = Route::query();
+            
+            // Filter by type if provided (expressway or normal)
+            if ($request->has('type') && $request->type) {
+                $type = $request->type;
+                $query->where(function($q) use ($type) {
+                    $q->whereJsonContains('metadata->type', $type)
+                      ->orWhereRaw('JSON_UNQUOTE(JSON_EXTRACT(metadata, "$.type")) = ?', [$type])
+                      ->orWhereRaw('JSON_EXTRACT(metadata, "$.type") = ?', [json_encode($type)]);
+                });
+            }
+            
+            // Filter by start_point if provided
+            if ($request->has('start_point') && $request->start_point) {
+                $query->where('start_point', 'like', '%' . $request->start_point . '%');
+            }
+            
+            // Filter by end_point if provided
+            if ($request->has('end_point') && $request->end_point) {
+                $query->where('end_point', 'like', '%' . $request->end_point . '%');
+            }
+            
+            $routes = $query->orderBy('name')->get();
+            
+            return response()->json($routes);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching routes: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch routes',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function show($id)
