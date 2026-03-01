@@ -14,8 +14,17 @@ class QRScanController extends Controller
             'ticket_id' => 'required|string'
         ]);
 
-        $booking = Booking::with(['user', 'schedule.route'])
-            ->where('booking_reference', $request->ticket_id)
+        // Extract booking ID from ticket format (TKT-000001)
+        $ticketId = $request->ticket_id;
+        $bookingId = null;
+        
+        if (preg_match('/TKT-(\d+)/', $ticketId, $matches)) {
+            $bookingId = (int) $matches[1];
+        }
+
+        $booking = Booking::with(['user', 'bus.route'])
+            ->where('id', $bookingId)
+            ->orWhere('booking_reference', $ticketId)
             ->first();
 
         if (!$booking) {
@@ -25,16 +34,20 @@ class QRScanController extends Controller
             ], 404);
         }
 
-        $isValid = $booking->status === 'confirmed' && 
+        $isValid = in_array($booking->status, ['confirmed', 'boarded']) && 
                    $booking->payment_status === 'paid';
+
+        $route = $booking->route ?? $booking->bus->route;
+        $routeInfo = $route ? ($route->start_point . ' - ' . $route->end_point) : 'N/A';
 
         return response()->json([
             'valid' => $isValid,
-            'ticket_id' => $booking->booking_reference,
+            'ticket_id' => 'TKT-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
             'passenger' => $booking->user->name,
             'seat' => $booking->seat_number,
-            'route' => $booking->schedule->route->origin . ' - ' . $booking->schedule->route->destination,
-            'booking_id' => $booking->id
+            'route' => $routeInfo,
+            'booking_id' => $booking->id,
+            'status' => $booking->status
         ]);
     }
 
@@ -50,7 +63,8 @@ class QRScanController extends Controller
             return response()->json(['message' => 'Booking not found'], 404);
         }
 
-        $booking->update(['status' => 'boarded']);
+        // Update status to completed (boarded)
+        $booking->update(['status' => 'completed']);
 
         return response()->json([
             'message' => 'Boarding confirmed',
@@ -60,15 +74,30 @@ class QRScanController extends Controller
 
     public function getRecentScans(Request $request)
     {
+        $user = $request->user();
+        
+        // Get driver's current bus assignment
+        $assignment = \App\Models\DriverAssignment::where('driver_id', $user->id)
+            ->whereDate('assignment_date', today())
+            ->whereNull('ended_at')
+            ->first();
+            
+        if (!$assignment) {
+            return response()->json([]);
+        }
+
         $scans = Booking::with(['user'])
-            ->where('status', 'boarded')
+            ->where('bus_id', $assignment->bus_id)
+            ->where('status', 'completed')
+            ->whereDate('updated_at', today())
             ->orderBy('updated_at', 'desc')
             ->limit(10)
             ->get()
             ->map(function ($booking) {
                 return [
-                    'id' => $booking->booking_reference,
+                    'id' => 'TKT-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
                     'passenger' => $booking->user->name,
+                    'seat' => $booking->seat_number,
                     'time' => $booking->updated_at->format('g:i A'),
                     'status' => 'Valid'
                 ];
