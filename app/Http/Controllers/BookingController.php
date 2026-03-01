@@ -15,9 +15,20 @@ class BookingController extends Controller
 {
     public function index(Request $request)
     {
-        $bookings = Booking::with(['user', 'bus', 'route'])
-            ->where('user_id', $request->user()->id)
-            ->get();
+        $user = $request->user();
+        
+        // Admin can see all bookings
+        if ($user->role === 'admin') {
+            $bookings = Booking::with(['user', 'bus', 'route'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+        } else {
+            // Regular users see only their bookings
+            $bookings = Booking::with(['user', 'bus', 'route'])
+                ->where('user_id', $user->id)
+                ->get();
+        }
+        
         return response()->json($bookings);
     }
 

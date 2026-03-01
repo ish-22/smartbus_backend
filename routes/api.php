@@ -135,6 +135,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('users')->group(function () {
         // Get all drivers (for owners/admins)
         Route::get('/drivers', [UserController::class, 'getDrivers']);
+        // Get all owners (for admins)
+        Route::get('/owners', [UserController::class, 'getOwners']);
+        // Get all passengers (for admins)
+        Route::get('/passengers', [UserController::class, 'getPassengers']);
+        // Get owner statistics (for admins)
+        Route::get('/owner-stats', [UserController::class, 'getOwnerStats']);
+        // Admin management routes
+        Route::get('/admins', [UserController::class, 'getAdmins']);
+        Route::post('/admins', [UserController::class, 'createAdmin']);
+        Route::put('/admins/{id}', [UserController::class, 'updateAdmin']);
+        Route::delete('/admins/{id}', [UserController::class, 'deleteAdmin']);
     });
     
     // Driver assignment routes - Owners and Admins only
@@ -169,6 +180,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/admin/stats', [DashboardController::class, 'adminStats']);
     Route::get('/dashboard/owner/stats', [DashboardController::class, 'ownerStats']);
     Route::get('/dashboard/passenger/stats', [DashboardController::class, 'passengerStats']);
+    Route::get('/dashboard/security/stats', [DashboardController::class, 'securityStats']);
     
     // Incident routes
     Route::prefix('incidents')->group(function () {
@@ -188,19 +200,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/buses/{id}', [BusController::class, 'show']); // Moved to public section
     
     // Owner and Admin routes - Bus registration
-    Route::middleware('role:owner,admin')->group(function () {
-        Route::post('/buses', [BusController::class, 'store']);
-    });
+    Route::post('/buses', [BusController::class, 'store']);
+    
+    // Routes management (admin only)
+    Route::post('/routes', [RouteController::class, 'store']);
+    Route::put('/routes/{id}', [RouteController::class, 'update']);
+    Route::delete('/routes/{id}', [RouteController::class, 'destroy']);
     
     // Admin routes
     Route::middleware('role:admin')->group(function () {
-        Route::post('/routes', [RouteController::class, 'store']);
+        
         Route::post('/stops', [StopController::class, 'store']);
+        Route::put('/stops/{id}', [StopController::class, 'update']);
+        Route::delete('/stops/{id}', [StopController::class, 'destroy']);
+        
+        Route::post('/buses', [BusController::class, 'store']);
+        Route::put('/buses/{id}', [BusController::class, 'update']);
+        Route::delete('/buses/{id}', [BusController::class, 'destroy']);
         
         // Admin-only reward and offer management
-        Route::post('/admin/offers', [\App\Http\Controllers\OfferController::class, 'store']);
-        Route::put('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'update']);
-        Route::delete('/admin/offers/{id}', [\App\Http\Controllers\OfferController::class, 'destroy']);
         Route::post('/admin/rewards/bulk-add', [\App\Http\Controllers\RewardController::class, 'bulkAddPoints']);
 
         // Admin-only notifications creation
