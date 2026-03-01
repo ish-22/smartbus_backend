@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Booking;
+use App\Models\DriverAssignment;
 use App\Models\Reward;
 use App\Models\Offer;
 use App\Models\OfferRedemption;
@@ -233,5 +234,81 @@ class BookingController extends Controller
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
         return response()->json($booking);
+    }
+
+    /**
+     * Get today's passengers for the currently assigned bus of the authenticated driver.
+     * Response includes simple stats (total, boarded, pending) and a normalized passenger list.
+     */
+    public function driverPassengers(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || $user->role !== 'driver') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Find today's active assignment for this driver
+        $assignment = DriverAssignment::where('driver_id', $user->id)
+            ->whereDate('assignment_date', today())
+            ->whereNull('ended_at')
+            ->with('bus.route')
+            ->latest('assigned_at')
+            ->first();
+
+        if (!$assignment) {
+            return response()->json([
+                'message' => 'No active assignment found for today',
+                'stats' => [
+                    'total' => 0,
+                    'boarded' => 0,
+                    'pending' => 0,
+                ],
+                'passengers' => [],
+            ]);
+        }
+
+        // Get today's bookings for this bus
+        $bookings = Booking::with(['user', 'route'])
+            ->where('bus_id', $assignment->bus_id)
+            ->whereDate('travel_date', today())
+            ->get();
+
+        $total = $bookings->count();
+        // Treat completed bookings as "Boarded", confirmed as "Pending"
+        $boarded = $bookings->where('status', 'completed')->count();
+        $pending = $bookings->where('status', 'confirmed')->count();
+
+        $passengers = $bookings->map(function (Booking $booking) {
+            $route = $booking->route;
+            $from = $route?->start_point ?? $route?->start_location ?? $route?->name ?? 'Start';
+            $to = $route?->end_point ?? $route?->end_location ?? $route?->name ?? 'End';
+
+            $statusLabel = match ($booking->status) {
+                'completed' => 'Boarded',
+                'confirmed' => 'Pending',
+                default => ucfirst($booking->status),
+            };
+
+            return [
+                'id' => $booking->id,
+                'name' => $booking->user->name ?? 'Passenger',
+                'seat' => $booking->seat_number,
+                'from' => $from,
+                'to' => $to,
+                'ticketId' => 'TKT-' . str_pad((string) $booking->id, 6, '0', STR_PAD_LEFT),
+                'status' => $statusLabel,
+            ];
+        })->values();
+
+        return response()->json([
+            'assignment' => $assignment,
+            'stats' => [
+                'total' => $total,
+                'boarded' => $boarded,
+                'pending' => $pending,
+            ],
+            'passengers' => $passengers,
+        ]);
     }
 }
