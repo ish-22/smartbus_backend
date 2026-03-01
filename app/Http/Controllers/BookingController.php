@@ -40,9 +40,11 @@ class BookingController extends Controller
             'route_id' => 'nullable|exists:routes,id',
             'seat_number' => 'required|string|max:50',
             'fare' => 'required|numeric|min:0',
+            'trip_number' => 'nullable|integer|min:1',
             'payment_method' => 'required|in:cash,credit_card,debit_card,digital_wallet',
             'points_to_use' => 'nullable|integer|min:0',
             'offer_id' => 'nullable|exists:offers,id',
+            'email' => 'required|email',
             // Card payment fields
             'card_number' => 'nullable|string',
             'card_expiry' => 'nullable|string',
@@ -53,6 +55,18 @@ class BookingController extends Controller
         ]);
 
         try {
+            // Check if seat is already booked for this trip
+            $existingBooking = Booking::where('bus_id', $data['bus_id'])
+                ->where('seat_number', $data['seat_number'])
+                ->whereDate('travel_date', now()->addDay())
+                ->where('trip_number', $data['trip_number'] ?? 1)
+                ->whereIn('status', ['confirmed', 'completed'])
+                ->first();
+
+            if ($existingBooking) {
+                throw new \Exception('This seat is already booked for this trip. Please select another seat.');
+            }
+
             $booking = Booking::create([
                 'user_id' => $request->user()->id,
                 'bus_id' => $data['bus_id'],
@@ -60,6 +74,7 @@ class BookingController extends Controller
                 'seat_number' => $data['seat_number'],
                 'fare' => $data['fare'],
                 'travel_date' => now()->addDay(),
+                'trip_number' => $data['trip_number'] ?? 1,
                 'status' => 'confirmed',
                 'payment_method' => $data['payment_method'],
                 'payment_status' => 'pending'
@@ -108,6 +123,14 @@ class BookingController extends Controller
 
             // Process payment
             $payment = $paymentService->processPayment($booking, $data);
+
+            // Send email with QR code
+            try {
+                \Mail::to($data['email'])->send(new \App\Mail\BookingConfirmation($booking->load(['user', 'bus.route', 'route'])));
+                \Log::info('Booking confirmation email sent to: ' . $data['email']);
+            } catch (\Exception $e) {
+                \Log::error('Failed to send booking email: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

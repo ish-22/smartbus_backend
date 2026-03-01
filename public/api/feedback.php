@@ -40,11 +40,19 @@ try {
         ]);
         
     } elseif ($method === 'GET') {
-        // Get feedback
-        $sql = "SELECT * FROM feedback ORDER BY created_at DESC LIMIT 50";
-        $stmt = $pdo->query($sql);
-        $feedback = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get feedback with optional type filter
+        $type = $_GET['type'] ?? null;
         
+        if ($type && $type !== 'all') {
+            $sql = "SELECT * FROM feedback WHERE type = ? ORDER BY created_at DESC LIMIT 50";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$type]);
+        } else {
+            $sql = "SELECT * FROM feedback ORDER BY created_at DESC LIMIT 50";
+            $stmt = $pdo->query($sql);
+        }
+        
+        $feedback = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode(['data' => $feedback]);
     }
     

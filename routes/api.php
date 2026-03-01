@@ -19,6 +19,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\OverpassRouteController;
 use App\Http\Controllers\QRScanController;
 use App\Http\Controllers\DriverStatsController;
+use App\Http\Controllers\BusSearchController;
+use App\Http\Controllers\BusSeatController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -39,6 +41,8 @@ Route::get('/test', function() {
 // Public routes (no auth required)
 Route::get('/routes', [RouteController::class, 'index']);
 Route::get('/routes/{id}', [RouteController::class, 'show']);
+Route::get('/buses/search', [BusSearchController::class, 'searchBuses']);
+Route::get('/buses/{id}/seats', [BusSeatController::class, 'getAvailableSeats']);
 Route::get('/buses', [BusController::class, 'index']);
 Route::get('/buses/{id}', [BusController::class, 'show']);
 

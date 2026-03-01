@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Booking extends Model
 {
     protected $fillable = [
-        'user_id', 'bus_id', 'route_id', 'seat_number', 'fare', 'status', 'travel_date',
+        'user_id', 'bus_id', 'route_id', 'seat_number', 'fare', 'status', 'travel_date', 'trip_number',
         'payment_method', 'payment_status', 'transaction_id', 'payment_details',
         'discount_amount', 'points_used', 'payment_date'
     ];
