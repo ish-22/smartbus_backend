@@ -54,6 +54,7 @@ class RouteController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:191',
+            'route_number' => 'nullable|string|max:191',
             'start_point' => 'nullable|string|max:255',
             'end_point' => 'nullable|string|max:255',
             'metadata' => 'nullable|array'
@@ -61,5 +62,27 @@ class RouteController extends Controller
 
         $route = Route::create($data);
         return response()->json($route, 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $route = Route::findOrFail($id);
+        
+        $data = $request->validate([
+            'name' => 'sometimes|string|max:191',
+            'start_point' => 'nullable|string|max:255',
+            'end_point' => 'nullable|string|max:255',
+            'metadata' => 'nullable|array'
+        ]);
+
+        $route->update($data);
+        return response()->json($route);
+    }
+
+    public function destroy($id)
+    {
+        $route = Route::findOrFail($id);
+        $route->delete();
+        return response()->json(['message' => 'Route deleted successfully']);
     }
 }

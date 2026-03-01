@@ -25,15 +25,22 @@ class RewardController extends Controller
     public function getRewardHistory(Request $request)
     {
         try {
-            $userId = $request->user_id ?? $request->user()->id;
-            $rewards = Reward::where('user_id', $userId)
-                           ->orderBy('created_at', 'desc')
-                           ->get();
+            $user = $request->user();
             
-            return response()->json([
-                'success' => true,
-                'data' => $rewards
-            ]);
+            // Admin can see all rewards with user data
+            if ($user->role === 'admin') {
+                $rewards = Reward::with('user')
+                               ->orderBy('created_at', 'desc')
+                               ->get();
+            } else {
+                // Regular users see only their rewards
+                $userId = $request->user_id ?? $user->id;
+                $rewards = Reward::where('user_id', $userId)
+                               ->orderBy('created_at', 'desc')
+                               ->get();
+            }
+            
+            return response()->json($rewards);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

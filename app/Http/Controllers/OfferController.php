@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use App\Models\Offer;
 use App\Models\Reward;
 use App\Models\OwnerOfferPayment;
@@ -33,10 +34,14 @@ class OfferController extends Controller
                 'discount_percentage' => 'required|numeric|min:0|max:100',
                 'required_points' => 'required|integer|min:1',
                 'start_date' => 'required|date',
-                'end_date' => 'required|date|after:start_date'
+                'end_date' => 'required|date|after:start_date',
+                'status' => 'sometimes|in:active,expired'
             ]);
 
-            $data['status'] = 'active';
+            // Default status to 'active' if not provided
+            if (!isset($data['status'])) {
+                $data['status'] = 'active';
+            }
             $offer = Offer::create($data);
 
             return response()->json([
@@ -45,13 +50,17 @@ class OfferController extends Controller
                 'data' => $offer
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Offer validation failed', [
+                'errors' => $e->errors(),
+                'input' => $request->all()
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Offer creation failed: ' . $e->getMessage());
+            Log::error('Offer creation failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create offer: ' . $e->getMessage()

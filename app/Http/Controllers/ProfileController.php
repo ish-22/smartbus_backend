@@ -42,7 +42,6 @@ class ProfileController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'phone' => $user->phone,
             'role' => $user->role,
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
@@ -89,21 +88,17 @@ class ProfileController extends Controller
         // Validate input
         $data = $request->validate([
             'name' => 'sometimes|string|max:191',
-            'email' => [
-                'sometimes',
-                'nullable',
-                'email',
-                Rule::unique('users', 'email')->ignore($user_id)
-            ],
-            'phone' => [
-                'sometimes',
-                'nullable',
-                'string',
-                Rule::unique('users', 'phone')->ignore($user_id)
-            ],
+            'email' => 'sometimes|nullable|email',
             'password' => 'sometimes|string|min:6|nullable',
             'license_number' => 'sometimes|nullable|string|max:191',
         ]);
+
+        // Check uniqueness manually
+        if (isset($data['email']) && $data['email'] && $data['email'] != $user->email) {
+            if (User::where('email', $data['email'])->where('id', '!=', $user->id)->exists()) {
+                return response()->json(['message' => 'The email has already been taken.'], 422);
+            }
+        }
 
         // Update user fields
         if (isset($data['name'])) {
@@ -112,10 +107,6 @@ class ProfileController extends Controller
 
         if (isset($data['email'])) {
             $user->email = $data['email'];
-        }
-
-        if (isset($data['phone'])) {
-            $user->phone = $data['phone'];
         }
 
         // Update license_number if provided (for owners and drivers)
@@ -135,7 +126,6 @@ class ProfileController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'phone' => $user->phone,
             'role' => $user->role,
             'updated_at' => $user->updated_at,
         ];

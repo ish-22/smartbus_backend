@@ -184,4 +184,63 @@ class BusController extends Controller
             ], 500);
         }
     }
+
+    public function update(Request $request, $id)
+    {
+        $user = $request->user();
+        $bus = Bus::findOrFail($id);
+        
+        // Only admins or bus owners can update buses
+        if ($user->role !== 'admin' && $bus->owner_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $data = $request->validate([
+            'number' => 'sometimes|string|max:50',
+            'type' => 'sometimes|in:expressway,normal',
+            'route_id' => 'nullable|integer|exists:routes,id',
+            'capacity' => 'sometimes|integer|min:1',
+            'model' => 'nullable|string|max:100',
+            'status' => 'sometimes|in:active,maintenance,inactive,pending,rejected',
+        ]);
+
+        if (isset($data['number'])) {
+            $data['bus_number'] = $data['number'];
+            unset($data['number']);
+        }
+
+        $bus->update($data);
+        $bus->load(['route:id,name,route_number,start_point,end_point', 'driver:id,name,email,phone', 'owner:id,name']);
+        
+        return response()->json([
+            'id' => $bus->id,
+            'number' => $bus->bus_number,
+            'bus_number' => $bus->bus_number,
+            'type' => $bus->type ?? 'normal',
+            'route_id' => $bus->route_id,
+            'capacity' => $bus->capacity,
+            'driver_id' => $bus->driver_id,
+            'owner_id' => $bus->owner_id,
+            'model' => $bus->model,
+            'status' => $bus->status ?? 'active',
+            'route' => $bus->route,
+            'driver' => $bus->driver,
+            'owner' => $bus->owner,
+            'created_at' => $bus->created_at?->toDateTimeString(),
+        ]);
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $user = $request->user();
+        $bus = Bus::findOrFail($id);
+        
+        // Only admins or bus owners can delete buses
+        if ($user->role !== 'admin' && $bus->owner_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $bus->delete();
+        return response()->json(['message' => 'Bus deleted successfully']);
+    }
 }
