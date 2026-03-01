@@ -16,6 +16,9 @@ class Bus extends Model
         'route_id',
         'driver_id',
         'owner_id',
+        'current_latitude',
+        'current_longitude',
+        'last_location_update',
     ];
 
     public function route()

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Bus;
+use App\Models\DriverAssignment;
 
 class BusController extends Controller
 {
@@ -242,5 +243,80 @@ class BusController extends Controller
 
         $bus->delete();
         return response()->json(['message' => 'Bus deleted successfully']);
+    }
+
+    /**
+     * Get current live location for a bus.
+     */
+    public function getLocation($id)
+    {
+        $bus = Bus::findOrFail($id);
+
+        if ($bus->current_latitude === null || $bus->current_longitude === null) {
+            return response()->json([
+                'message' => 'No live location available for this bus',
+                'bus_id' => $bus->id,
+                'location' => null,
+            ]);
+        }
+
+        return response()->json([
+            'bus_id' => $bus->id,
+            'latitude' => (float) $bus->current_latitude,
+            'longitude' => (float) $bus->current_longitude,
+            'last_update' => $bus->last_location_update,
+        ]);
+    }
+
+    /**
+     * Update current live location for a bus.
+     * Only the assigned driver (with active assignment today) or admins can update.
+     */
+    public function updateLocation(Request $request, $id)
+    {
+        $user = $request->user();
+        $bus = Bus::findOrFail($id);
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Admins can always update
+        $isAdmin = strtolower(trim($user->role ?? '')) === 'admin';
+
+        // Driver must have an active assignment for this bus today
+        $isDriverWithAssignment = false;
+        if (strtolower(trim($user->role ?? '')) === 'driver') {
+            $activeAssignment = DriverAssignment::where('driver_id', $user->id)
+                ->where('bus_id', $bus->id)
+                ->whereDate('assignment_date', today())
+                ->whereNull('ended_at')
+                ->first();
+            $isDriverWithAssignment = (bool) $activeAssignment;
+        }
+
+        if (! $isAdmin && ! $isDriverWithAssignment) {
+            return response()->json([
+                'message' => 'Unauthorized to update location for this bus',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+        ]);
+
+        $bus->current_latitude = $data['latitude'];
+        $bus->current_longitude = $data['longitude'];
+        $bus->last_location_update = now();
+        $bus->save();
+
+        return response()->json([
+            'message' => 'Location updated successfully',
+            'bus_id' => $bus->id,
+            'latitude' => (float) $bus->current_latitude,
+            'longitude' => (float) $bus->current_longitude,
+            'last_update' => $bus->last_location_update,
+        ]);
     }
 }

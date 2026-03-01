@@ -17,6 +17,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OverpassRouteController;
+use App\Http\Controllers\QRScanController;
+use App\Http\Controllers\DriverStatsController;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
@@ -167,6 +169,9 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Get assignment history
         Route::get('/{driverId}/assignments', [DriverAssignmentController::class, 'getAssignmentHistory']);
+
+        // Driver passengers for today's trip (uses authenticated driver, ignores path driverId)
+        Route::get('/me/passengers', [BookingController::class, 'driverPassengers']);
     });
     
     // Notification routes (for all authenticated users, especially drivers)
@@ -195,9 +200,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [IncidentController::class, 'destroy']); // Admin: delete
     });
     
-    // Buses routes - Now public, but owners see only their buses when authenticated
-    // Route::get('/buses', [BusController::class, 'index']); // Moved to public section
-    // Route::get('/buses/{id}', [BusController::class, 'show']); // Moved to public section
+    // Buses live location routes
+    Route::get('/buses/{id}/location', [BusController::class, 'getLocation']);
+    Route::post('/buses/{id}/location', [BusController::class, 'updateLocation']);
+    
+    // QR Scanner routes (for drivers)
+    Route::post('/qr/validate', [QRScanController::class, 'validateTicket']);
+    Route::post('/qr/confirm-boarding', [QRScanController::class, 'confirmBoarding']);
+    Route::get('/qr/recent-scans', [QRScanController::class, 'getRecentScans']);
+    
+    // Driver statistics
+    Route::get('/driver/stats', [DriverStatsController::class, 'getStats']);
     
     // Owner and Admin routes - Bus registration
     Route::post('/buses', [BusController::class, 'store']);
