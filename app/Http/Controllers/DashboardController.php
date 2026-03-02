@@ -138,6 +138,64 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get owner analytics data including revenue
+     */
+    public function ownerAnalytics(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user || $user->role !== 'owner') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            // Get owner's buses
+            $ownerBusIds = Bus::where('owner_id', $user->id)->pluck('id');
+            
+            // Calculate monthly revenue (current month)
+            $monthlyRevenue = Booking::whereIn('bus_id', $ownerBusIds)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('fare');
+            
+            // Calculate today's revenue
+            $todayRevenue = Booking::whereIn('bus_id', $ownerBusIds)
+                ->whereDate('created_at', today())
+                ->sum('fare');
+            
+            // Get active buses count
+            $activeBuses = Bus::where('owner_id', $user->id)
+                ->where('status', 'active')
+                ->count();
+            
+            // Get total trips (bookings)
+            $totalTrips = Booking::whereIn('bus_id', $ownerBusIds)->count();
+            
+            // Get today's trips
+            $todayTrips = Booking::whereIn('bus_id', $ownerBusIds)
+                ->whereDate('created_at', today())
+                ->count();
+            
+            // Get total bookings
+            $totalBookings = Booking::whereIn('bus_id', $ownerBusIds)->count();
+            
+            $analytics = [
+                'monthly_revenue' => (float)$monthlyRevenue,
+                'active_buses' => $activeBuses,
+                'total_trips' => $totalTrips,
+                'today_revenue' => (float)$todayRevenue,
+                'today_trips' => $todayTrips,
+                'total_bookings' => $totalBookings,
+            ];
+
+            return response()->json($analytics);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to fetch analytics', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+
+    /**
      * Get security statistics and events
      */
     public function securityStats(Request $request)

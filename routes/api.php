@@ -20,6 +20,7 @@ use App\Http\Controllers\OverpassRouteController;
 use App\Http\Controllers\QRScanController;
 use App\Http\Controllers\DriverStatsController;
 use App\Http\Controllers\BusSearchController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\BusSeatController;
 
 // Public authentication routes
@@ -188,6 +189,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard statistics routes
     Route::get('/dashboard/admin/stats', [DashboardController::class, 'adminStats']);
     Route::get('/dashboard/owner/stats', [DashboardController::class, 'ownerStats']);
+    Route::get('/dashboard/owner/analytics', [DashboardController::class, 'ownerAnalytics']);
     Route::get('/dashboard/passenger/stats', [DashboardController::class, 'passengerStats']);
     Route::get('/dashboard/security/stats', [DashboardController::class, 'securityStats']);
     
@@ -215,6 +217,15 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Driver statistics
     Route::get('/driver/stats', [DriverStatsController::class, 'getStats']);
+    
+    // Reports routes (Owner only)
+    Route::prefix('reports')->group(function () {
+        Route::get('/', [ReportController::class, 'reportsIndex']);
+        Route::get('/revenue', [ReportController::class, 'revenueReport']);
+        Route::get('/bus-performance', [ReportController::class, 'busPerformanceReport']);
+        Route::get('/incidents', [ReportController::class, 'incidentReport']);
+        Route::get('/booking-stats', [ReportController::class, 'bookingStatsReport']);
+    });
     
     // Owner and Admin routes - Bus registration
     Route::post('/buses', [BusController::class, 'store']);
