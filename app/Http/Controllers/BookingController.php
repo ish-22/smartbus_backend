@@ -11,6 +11,7 @@ use App\Models\OfferRedemption;
 use App\Models\AdminCompensation;
 use App\Http\Controllers\RewardController;
 use App\Services\PaymentService;
+use App\Services\PHPMailerService;
 
 class BookingController extends Controller
 {
@@ -27,6 +28,7 @@ class BookingController extends Controller
             // Regular users see only their bookings
             $bookings = Booking::with(['user', 'bus', 'route'])
                 ->where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
                 ->get();
         }
         
@@ -40,6 +42,7 @@ class BookingController extends Controller
             'route_id' => 'nullable|exists:routes,id',
             'seat_number' => 'required|string|max:50',
             'fare' => 'required|numeric|min:0',
+            'travel_date' => 'required|date',
             'trip_number' => 'nullable|integer|min:1',
             'payment_method' => 'required|in:cash,credit_card,debit_card,digital_wallet',
             'points_to_use' => 'nullable|integer|min:0',
@@ -55,10 +58,12 @@ class BookingController extends Controller
         ]);
 
         try {
+            $travelDate = $data['travel_date'];
+
             // Check if seat is already booked for this trip
             $existingBooking = Booking::where('bus_id', $data['bus_id'])
                 ->where('seat_number', $data['seat_number'])
-                ->whereDate('travel_date', now()->addDay())
+                ->whereDate('travel_date', $travelDate)
                 ->where('trip_number', $data['trip_number'] ?? 1)
                 ->whereIn('status', ['confirmed', 'completed'])
                 ->first();
@@ -73,7 +78,7 @@ class BookingController extends Controller
                 'route_id' => $data['route_id'] ?? null,
                 'seat_number' => $data['seat_number'],
                 'fare' => $data['fare'],
-                'travel_date' => now()->addDay(),
+                'travel_date' => $travelDate,
                 'trip_number' => $data['trip_number'] ?? 1,
                 'status' => 'confirmed',
                 'payment_method' => $data['payment_method'],
@@ -124,12 +129,11 @@ class BookingController extends Controller
             // Process payment
             $payment = $paymentService->processPayment($booking, $data);
 
-            // Send email with QR code
-            try {
-                \Mail::to($data['email'])->send(new \App\Mail\BookingConfirmation($booking->load(['user', 'bus.route', 'route'])));
-                \Log::info('Booking confirmation email sent to: ' . $data['email']);
-            } catch (\Exception $e) {
-                \Log::error('Failed to send booking email: ' . $e->getMessage());
+            $recipientEmail = $data['email'] ?: ($request->user()->email ?? null);
+
+            if ($recipientEmail) {
+                $mailService = new PHPMailerService();
+                $mailService->sendBookingConfirmation($booking, $recipientEmail);
             }
 
             return response()->json([
